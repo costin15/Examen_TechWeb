@@ -1,0 +1,88 @@
+import React, {useState, useEffect} from 'react';
+import {useParams, useNavigate} from "react-router-dom";
+import './confirmDialog';
+
+function CrewForm(props) {
+	const navigate = useNavigate();
+	const {crewMemberID,} = useParams();
+	const [crew, setCrew] = useState({
+		Name: '',
+		Rol: '',
+        
+	});
+	const loadCrew = async (crewMemberID) => {
+		if (crewMemberID && crewMemberID !== 'new') {
+			const response = await fetch(`http://localhost:8080/models/CrewMember/${crewMemberID}`);
+			if (response.status === 200) {
+				setCrew(await response.json());
+			}
+		}
+	}
+	useEffect(() => loadCrew(crewMemberID), [crewMemberID,]);
+	async function saveCrew() {
+		if (crewMemberID === 'new') {
+			const response = await fetch('http://localhost:8080/models/CrewMember/', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(crew)
+			});
+			if (response.status === 201) {
+				navigate('/');
+			}
+		} else {
+			const response = await fetch(`http://localhost:8080/models/CrewMember/${crewMemberID}`, {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(crew)
+			});
+			if (response.status === 204) {
+				navigate('/');
+			}
+		}
+	}
+	async function deleteCrew() {
+		if (crewMemberID && crewMemberID !== 'new'
+			&& await document.getElementById('dialog')
+				.confirmDialog('Are you sure you want to remove this crew?')) {
+			const response = await fetch(`http://localhost:8080/models/CrewMember/${crewMemberID}`, {
+				method: 'DELETE'
+			});
+			if (response.status === 204) {
+				navigate('/');
+			}
+		}
+	}
+	function set(property, value) {
+		const record = {...crew};
+		record[property] = value;
+		setCrew(record);
+	}
+	return (
+		<div className="form">
+			<h1>Crew Member</h1>
+			<form onSubmit={saveCrew} onReset={() => navigate('/')}>
+				<label>Nume membru</label>
+				<input type="text" value={crew.Name}
+					onChange={event => set('Name', event.target.value)}/>
+				<label>Rol</label>
+				<input type="text" value={crew.Rol}
+					onChange={event => set('Rol', event.target.value)}/>
+                
+                
+				<div className="buttons">
+					<input type="submit" value="Save"/>
+					{crewMemberID && crewMemberID !== 'new' && <input type="button" className="delete"
+						value="Delete" onClick={deleteCrew}/>}
+					<input type="reset" value="Cancel"/>
+				</div>
+			</form>
+			<div id="dialog" className="modal-dialog"/>
+		</div>		
+	);
+}
+
+export default CrewForm;
